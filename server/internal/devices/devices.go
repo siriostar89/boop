@@ -1,4 +1,5 @@
-// Package devices manages paired phones and their APNs tokens.
+// Package devices manages paired phones and their push tokens (APNs for iOS,
+// FCM for Android).
 package devices
 
 import (
@@ -56,7 +57,7 @@ func scan(row interface{ Scan(...any) error }) (Device, error) {
 	return d, err
 }
 
-// Create inserts a device (without an APNs token yet) and returns it with its raw credential.
+// Create inserts a device (without a push token yet) and returns it with its raw credential.
 func (s *Store) Create(ctx context.Context, name, platform string) (Device, string, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
@@ -97,7 +98,7 @@ func (s *Store) Authenticate(ctx context.Context, raw string) (Device, error) {
 }
 
 // Register applies a registration to device id. When another device already
-// holds the same APNs token (a re-paired phone), that stale device is removed
+// holds the same push token (a re-paired phone), that stale device is removed
 // so tokens stay unique.
 func (s *Store) Register(ctx context.Context, id string, in Registration) (Device, error) {
 	d, err := s.Get(ctx, id)
@@ -138,7 +139,8 @@ func (s *Store) Register(ctx context.Context, id string, in Registration) (Devic
 	return d, err
 }
 
-// ClearToken removes a device's APNs token (e.g. after APNs reports it unregistered).
+// ClearToken removes a device's push token (e.g. after APNs or FCM reports it
+// unregistered).
 func (s *Store) ClearToken(ctx context.Context, id string) error {
 	_, err := s.db.ExecContext(ctx, `UPDATE devices SET device_token = NULL, updated_at = ? WHERE id = ?`, ids.Now(), id)
 	return err
@@ -171,7 +173,7 @@ func (s *Store) List(ctx context.Context) ([]Device, error) {
 	return out, rows.Err()
 }
 
-// Pushable returns devices that hold an APNs token.
+// Pushable returns devices that hold a push token (APNs or FCM).
 func (s *Store) Pushable(ctx context.Context) ([]Device, error) {
 	all, err := s.List(ctx)
 	if err != nil {

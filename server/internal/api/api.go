@@ -21,6 +21,7 @@ import (
 	"github.com/chrisgreg/boop/server/internal/events"
 	"github.com/chrisgreg/boop/server/internal/events/levels"
 	"github.com/chrisgreg/boop/server/internal/events/redact"
+	"github.com/chrisgreg/boop/server/internal/fcm"
 	"github.com/chrisgreg/boop/server/internal/mcp"
 	"github.com/chrisgreg/boop/server/internal/pairing"
 	"github.com/chrisgreg/boop/server/internal/projects"
@@ -45,6 +46,8 @@ type Server struct {
 	Dispatcher *delivery.Dispatcher
 	APNS       *apns.Client // nil when not configured
 	APNSError  string       // why APNS is nil
+	FCM        *fcm.Client  // nil when not configured
+	FCMError   string       // why FCM is nil
 	Admin      *auth.Admin  // web UI / admin API login; open when not enabled
 	StartedAt  time.Time
 	Web        http.Handler
@@ -394,6 +397,7 @@ type statusResponse struct {
 	BaseURL        string             `json:"base_url"`
 	UptimeSeconds  int64              `json:"uptime_seconds"`
 	APNS           apnsStatus         `json:"apns"`
+	FCM            fcmStatus          `json:"fcm"`
 	Devices        int                `json:"devices"`
 	PushableDevice int                `json:"pushable_devices"`
 	Projects       int                `json:"projects"`
@@ -414,6 +418,13 @@ type apnsStatus struct {
 	Environment string   `json:"environment"`
 }
 
+type fcmStatus struct {
+	Configured bool     `json:"configured"`
+	Error      string   `json:"error,omitempty"`
+	Missing    []string `json:"missing,omitempty"`
+	ProjectID  string   `json:"project_id,omitempty"`
+}
+
 func (s *Server) status(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	resp := statusResponse{Version: Version, Server: "ok", Database: "ok", DatabasePath: s.Config.DatabasePath, BaseURL: s.baseURL(r), UptimeSeconds: int64(time.Since(s.StartedAt).Seconds()), AdminAuth: s.Admin.Enabled()}
@@ -422,6 +433,7 @@ func (s *Server) status(w http.ResponseWriter, r *http.Request) {
 	}
 	resp.APNS = apnsStatus{Configured: s.APNS != nil, Error: s.APNSError, Missing: s.Config.APNS.Missing(),
 		TeamID: s.Config.APNS.TeamID, KeyID: s.Config.APNS.KeyID, BundleID: s.Config.APNS.BundleID, Environment: s.Config.APNS.Environment}
+	resp.FCM = fcmStatus{Configured: s.FCM != nil, Error: s.FCMError, Missing: s.Config.FCM.Missing(), ProjectID: s.Config.FCM.ProjectID}
 	devs, err := s.Devices.List(ctx)
 	if err != nil {
 		s.fail(w, err)
@@ -969,5 +981,5 @@ func (s *Server) testNotification(w http.ResponseWriter, r *http.Request) {
 	if dl == nil {
 		dl = []delivery.Delivery{}
 	}
-	writeJSON(w, http.StatusCreated, map[string]any{"event": e, "deliveries": dl, "apns_configured": s.APNS != nil})
+	writeJSON(w, http.StatusCreated, map[string]any{"event": e, "deliveries": dl, "apns_configured": s.APNS != nil, "fcm_configured": s.FCM != nil})
 }

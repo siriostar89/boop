@@ -22,6 +22,7 @@ import (
 	"github.com/chrisgreg/boop/server/internal/delivery"
 	"github.com/chrisgreg/boop/server/internal/devices"
 	"github.com/chrisgreg/boop/server/internal/events"
+	"github.com/chrisgreg/boop/server/internal/fcm"
 	"github.com/chrisgreg/boop/server/internal/pairing"
 	"github.com/chrisgreg/boop/server/internal/projects"
 	"github.com/chrisgreg/boop/server/internal/settings"
@@ -79,7 +80,26 @@ func run() error {
 		apnsErr = "missing " + join(cfg.APNS.Missing())
 		log.Warn("apns.not_configured", "missing", cfg.APNS.Missing())
 	}
+
+	var fcmClient *fcm.Client
+	fcmErr := ""
+	if cfg.FCM.Configured() {
+		fcmClient, err = fcm.New(cfg.FCM)
+		if err != nil {
+			fcmErr = err.Error()
+			fcmClient = nil
+			log.Warn("fcm.invalid", "error", fcmErr)
+		} else {
+			log.Info("fcm.configured", "project_id", cfg.FCM.ProjectID)
+		}
+	} else {
+		fcmErr = "missing " + join(cfg.FCM.Missing())
+		log.Warn("fcm.not_configured", "missing", cfg.FCM.Missing())
+	}
 	dispatcher := delivery.New(db, devStore, sender, log)
+	if fcmClient != nil {
+		dispatcher.SetAndroidSender(fcmClient)
+	}
 	dispatcher.Start(ctx)
 
 	admin := auth.NewAdmin(cfg.AdminUser, cfg.AdminPassword)
@@ -93,7 +113,7 @@ func run() error {
 	srv := &api.Server{
 		Config: cfg, DB: db, Log: log, Settings: st,
 		Projects: projects.New(db), Devices: devStore, Pairing: pairing.New(db, devStore), Events: evStore, Silences: silences.New(db),
-		Dispatcher: dispatcher, APNS: client, APNSError: apnsErr, Admin: admin, StartedAt: time.Now(), Web: web.Handler(),
+		Dispatcher: dispatcher, APNS: client, APNSError: apnsErr, FCM: fcmClient, FCMError: fcmErr, Admin: admin, StartedAt: time.Now(), Web: web.Handler(),
 	}
 
 	go retentionLoop(ctx, log, st, evStore, srv.Pairing, cfg.RetentionDays)

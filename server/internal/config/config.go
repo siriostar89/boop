@@ -28,6 +28,33 @@ type Config struct {
 	MCPToken string
 
 	APNS APNS
+	FCM  FCM
+}
+
+// FCM holds Firebase Cloud Messaging credentials for Android push. The
+// service-account JSON (a file path or its inline contents) identifies the
+// Firebase project the device tokens belong to.
+type FCM struct {
+	ProjectID          string
+	ServiceAccountPath string // FCM_SERVICE_ACCOUNT_PATH
+	ServiceAccountJSON string // FCM_SERVICE_ACCOUNT_JSON: JSON text or base64
+}
+
+// Configured reports whether every value required for FCM delivery is present.
+func (f FCM) Configured() bool {
+	return f.ProjectID != "" && (f.ServiceAccountPath != "" || f.ServiceAccountJSON != "")
+}
+
+// Missing lists the FCM settings that are still empty.
+func (f FCM) Missing() []string {
+	var m []string
+	if f.ProjectID == "" {
+		m = append(m, "FCM_PROJECT_ID")
+	}
+	if f.ServiceAccountPath == "" && f.ServiceAccountJSON == "" {
+		m = append(m, "FCM_SERVICE_ACCOUNT_PATH")
+	}
+	return m
 }
 
 // APNS holds Apple Push Notification service credentials.
@@ -81,6 +108,11 @@ func Load() (Config, error) {
 			PrivateKeyPath: env("APNS_PRIVATE_KEY_PATH", ""),
 			PrivateKey:     env("APNS_PRIVATE_KEY", ""),
 			Environment:    env("APNS_ENVIRONMENT", "production"),
+		},
+		FCM: FCM{
+			ProjectID:          env("FCM_PROJECT_ID", ""),
+			ServiceAccountPath: env("FCM_SERVICE_ACCOUNT_PATH", ""),
+			ServiceAccountJSON: env("FCM_SERVICE_ACCOUNT_JSON", ""),
 		},
 	}
 	if v := os.Getenv("BOOP_PORT"); v != "" {
