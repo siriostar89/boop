@@ -2,6 +2,8 @@ package dev.boop.android.ui
 
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -12,12 +14,28 @@ import dev.boop.android.ui.occurrences.OccurrencesScreen
 
 /** Inbox, occurrences and event detail; shown once the device is paired. */
 @Composable
-fun AppNavHost(container: AppContainer, onUnpair: () -> Unit) {
+fun AppNavHost(
+    container: AppContainer,
+    onUnpair: () -> Unit,
+    pendingEventId: MutableState<String?>? = null,
+) {
     val navController = rememberNavController()
 
     fun openEvent(id: String) = navController.navigate("event/${Uri.encode(id)}")
 
-    NavHost(navController = navController, startDestination = "inbox") {
+    // A notification tap carries the event id: open its detail once, then clear it.
+    val pending = pendingEventId?.value
+    LaunchedEffect(pending) {
+        if (pending != null) {
+            openEvent(pending)
+            pendingEventId?.value = null
+        }
+    }
+
+    NavHost(
+        navController = navController,
+        startDestination = "inbox",
+    ) {
         composable("inbox") {
             InboxScreen(
                 repository = container.eventsRepository,
