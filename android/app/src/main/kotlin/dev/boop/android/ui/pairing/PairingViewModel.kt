@@ -10,10 +10,8 @@ import androidx.lifecycle.viewModelScope
 import dev.boop.android.data.PairingRepository
 import dev.boop.android.data.model.PairingPayload
 import dev.boop.android.data.remote.ApiFactory
-import java.io.IOException
+import dev.boop.android.data.remote.toUserMessage
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
-import retrofit2.HttpException
 
 sealed interface PairingState {
     data object Idle : PairingState
@@ -69,18 +67,6 @@ class PairingViewModel(private val repository: PairingRepository) : ViewModel() 
 
     private fun deviceName(): String = Build.MODEL?.takeIf { it.isNotBlank() } ?: "Android device"
 
-    private fun Throwable.toUserMessage(): String = when (this) {
-        is HttpException -> {
-            val body = runCatching { response()?.errorBody()?.string() }.getOrNull()
-            val parsed = body?.let {
-                runCatching { ApiFactory.json.decodeFromString(ApiErrorBody.serializer(), it) }.getOrNull()
-            }
-            parsed?.message?.takeIf { it.isNotBlank() } ?: "Request failed (HTTP ${code()})"
-        }
-        is IOException -> "Cannot reach the server. Check the address."
-        else -> message ?: "Unexpected error"
-    }
-
     companion object {
         fun factory(repository: PairingRepository): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
@@ -90,6 +76,3 @@ class PairingViewModel(private val repository: PairingRepository) : ViewModel() 
             }
     }
 }
-
-@Serializable
-private data class ApiErrorBody(val error: String = "", val message: String = "")

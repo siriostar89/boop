@@ -66,5 +66,7 @@ dependencies {
     // QR pairing scanner (pure, no Google Play Services).
     implementation(libs.zxing.embedded)
 
+    testImplementation(libs.junit)
+
     debugImplementation(libs.androidx.ui.tooling)
 }
