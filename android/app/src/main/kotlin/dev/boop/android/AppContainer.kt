@@ -9,7 +9,7 @@ import dev.boop.android.push.PushRegistrar
 /** Manual dependency container (no DI framework yet). */
 class AppContainer(context: Context) {
     val session: SessionStore = SessionStore(context)
-    val pairingRepository: PairingRepository = PairingRepository(session)
-    val eventsRepository: EventsRepository = EventsRepository(session)
     val pushRegistrar: PushRegistrar = PushRegistrar(session)
+    val pairingRepository: PairingRepository = PairingRepository(session, pushRegistrar)
+    val eventsRepository: EventsRepository = EventsRepository(session)
 }
