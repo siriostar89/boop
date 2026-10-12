@@ -3,7 +3,10 @@ node_modules/
 server/web/dist/
 server/internal/web/dist/*
 !server/internal/web/dist/.gitkeep
-data/
+# The server's SQLite directory, at the repo root (docker-compose "./data:/data").
+# Anchored with a leading slash: a bare "data/" would also ignore any nested
+# directory named data, e.g. the Android app's dev.boop.android.data package.
+/data/
 *.db
 *.db-wal
 *.db-shm
