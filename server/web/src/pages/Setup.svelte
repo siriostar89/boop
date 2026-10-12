@@ -52,7 +52,7 @@
     try {
       const r = await api.test()
       if (r.deliveries.length === 0) testMsg = 'Event created. No phone with push registered yet, so nothing was sent.'
-      else if (!r.apns_configured) testMsg = 'Event created, but APNs is not configured so the push was skipped.'
+      else if (!r.apns_configured && !r.fcm_configured) testMsg = 'Event created, but neither APNs nor FCM is configured so the push was skipped.'
       else if (r.deliveries.every((d) => d.status === 'sent')) testMsg = `Sent to ${r.deliveries.length} device${r.deliveries.length === 1 ? '' : 's'}. Check your phone.`
       else testMsg = 'Push failed: ' + r.deliveries.map((d) => d.error).join('; ')
     } catch (e: any) {

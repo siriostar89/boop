@@ -20,7 +20,7 @@
   let projects = $state<Project[]>([])
   let error = $state('')
   let testing = $state(false)
-  let testResult = $state<{ deliveries: Delivery[]; apns_configured: boolean } | null>(null)
+  let testResult = $state<{ deliveries: Delivery[]; apns_configured: boolean; fcm_configured: boolean } | null>(null)
   let newKey = $state('')
   let testProject = $state('')
   let silences = $state<Silence[]>([])
@@ -221,8 +221,8 @@
         <div style="margin-top: 16px" transition:panel>
           {#if testResult.deliveries.length === 0}
             <Notice tone="info">Event created. No paired phones with push registered, so nothing was sent.</Notice>
-          {:else if !testResult.apns_configured}
-            <Notice tone="warn">Event created, but APNs is not configured so {testResult.deliveries.length} delivery{testResult.deliveries.length === 1 ? ' was' : 'ies were'} skipped.</Notice>
+          {:else if !testResult.apns_configured && !testResult.fcm_configured}
+            <Notice tone="warn">Event created, but neither APNs nor FCM is configured so {testResult.deliveries.length} delivery{testResult.deliveries.length === 1 ? ' was' : 'ies were'} skipped.</Notice>
           {:else if testResult.deliveries.every((d) => d.status === 'sent')}
             <Notice tone="good">Sent to {testResult.deliveries.length} device{testResult.deliveries.length === 1 ? '' : 's'}.</Notice>
           {:else}

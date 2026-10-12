@@ -213,5 +213,5 @@ export const api = {
   deleteSilence: (id: string) => request<void>('DELETE', `/api/v1/silences/${id}`),
 
   test: (project_id?: string) =>
-    request<{ event: Event; deliveries: Delivery[]; apns_configured: boolean }>('POST', '/api/v1/test', project_id ? { project_id } : {}),
+    request<{ event: Event; deliveries: Delivery[]; apns_configured: boolean; fcm_configured: boolean }>('POST', '/api/v1/test', project_id ? { project_id } : {}),
 }
