@@ -29,6 +29,10 @@ interface BoopApi {
     suspend fun listEvents(
         @Query("limit") limit: Int,
         @Query("before") before: String?,
+        @Query("grouped") grouped: Boolean?,
+        @Query("level") level: String?,
+        @Query("project") project: String?,
+        @Query("fingerprint") fingerprint: String?,
     ): EventPage
 
     @GET("api/v1/events/{id}")

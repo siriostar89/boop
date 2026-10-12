@@ -6,7 +6,7 @@ import dev.boop.android.data.model.Device
 
 /**
  * Stores the paired server URL and device credential in the app's private
- * SharedPreferences.
+ * SharedPreferences, plus small UI preferences.
  *
  * Note: plain storage, no at-rest encryption yet — hardening with the Android
  * Keystore is a follow-up.
@@ -22,6 +22,11 @@ class SessionStore(context: Context) {
 
     val isPaired: Boolean
         get() = !serverUrl.isNullOrBlank() && !credential.isNullOrBlank()
+
+    /** Inbox "Group repeats" toggle, remembered across launches (default on). */
+    var inboxGrouped: Boolean
+        get() = prefs.getBoolean(KEY_GROUPED, true)
+        set(value) = prefs.edit { putBoolean(KEY_GROUPED, value) }
 
     fun save(server: String, credential: String, device: Device) {
         prefs.edit {
@@ -42,5 +47,6 @@ class SessionStore(context: Context) {
         const val KEY_CREDENTIAL = "credential"
         const val KEY_DEVICE_ID = "device_id"
         const val KEY_DEVICE_NAME = "device_name"
+        const val KEY_GROUPED = "inbox_grouped"
     }
 }

@@ -38,3 +38,7 @@ fun relativeTime(iso: String): String {
 
 private fun parseInstant(iso: String): OffsetDateTime? =
     runCatching { OffsetDateTime.parse(iso) }.getOrNull()
+
+/** "First seen … · Last seen …" for a grouped row. */
+fun seenRange(firstSeen: String, lastSeen: String): String =
+    "First seen ${formatTimestamp(firstSeen)} · Last seen ${formatTimestamp(lastSeen)}"

@@ -14,6 +14,7 @@ data class Event(
     val source: String = "",
     val type: String = "",
     val fingerprint: String = "",
+    @SerialName("external_id") val externalId: String = "",
     @SerialName("project_id") val projectId: String = "",
     @SerialName("project_name") val projectName: String = "",
     @SerialName("project_slug") val projectSlug: String = "",
@@ -23,6 +24,18 @@ data class Event(
     @SerialName("occurred_at") val occurredAt: String = "",
     @SerialName("created_at") val createdAt: String = "",
     val silenced: Boolean = false,
+    /** Set in grouped listings: this row is the latest of [GroupInfo.count] occurrences. */
+    val group: GroupInfo? = null,
+) {
+    val isRepeated: Boolean get() = (group?.count ?: 0) > 1
+}
+
+/** Summarises the occurrences behind a grouped row. */
+@Serializable
+data class GroupInfo(
+    val count: Int = 0,
+    @SerialName("first_seen") val firstSeen: String = "",
+    @SerialName("last_seen") val lastSeen: String = "",
 )
 
 /** A button attached to an event that opens a URL. */
