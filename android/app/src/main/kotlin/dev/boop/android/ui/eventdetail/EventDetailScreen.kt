@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,12 +50,24 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.boop.android.data.EventsRepository
 import dev.boop.android.data.model.Event
 import dev.boop.android.data.model.EventAction
+import dev.boop.android.data.model.EventSections
+import dev.boop.android.data.model.StackFrame
 import dev.boop.android.data.model.agentMarkdown
 import dev.boop.android.data.model.plainText
 import dev.boop.android.data.remote.ApiFactory
 import dev.boop.android.ui.formatTimestamp
 import dev.boop.android.ui.levelColor
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+
+private fun JsonObject.contentOrNull(key: String): String? =
+    (this[key] as? JsonPrimitive)?.contentOrNull
+
+private fun JsonElement.inlineText(): String =
+    (this as? JsonPrimitive)?.contentOrNull ?: toString()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -148,6 +161,9 @@ private fun share(context: Context, text: String) {
 
 @Composable
 private fun EventContent(event: Event, modifier: Modifier) {
+    val sections = remember(event.data) { EventSections.fromData(event.data) }
+    var showRaw by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -192,21 +208,162 @@ private fun EventContent(event: Event, modifier: Modifier) {
             event.actions.forEach { EventActionButton(it) }
         }
 
+        // Exception section
+        sections.exception?.let { exc ->
+            HorizontalDivider()
+            EventSectionCard(title = "Exception") {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    exc.contentOrNull("type")?.let { t ->
+                        Text(t, style = MaterialTheme.typography.titleMedium)
+                    }
+                    exc.contentOrNull("message")?.let { m ->
+                        Text(m, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    exc.keys.filter { it != "type" && it != "message" }.sorted().forEach { k ->
+                        Text("$k: ${exc[k]?.inlineText() ?: "null"}", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+
+        // Stacktrace section
+        if (sections.frames.isNotEmpty()) {
+            HorizontalDivider()
+            EventSectionCard(title = "Stacktrace") {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    sections.frames.forEach { frame ->
+                        StackFrameRow(frame)
+                    }
+                }
+            }
+        }
+
+        // Tags section
+        if (sections.tags.isNotEmpty()) {
+            HorizontalDivider()
+            EventSectionCard(title = "Tags") {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    sections.tags.forEach { (key, value) ->
+                        Text("$key: ${value.inlineText()}", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+
+        // Context section
+        if (sections.context.isNotEmpty()) {
+            HorizontalDivider()
+            EventSectionCard(title = "Context") {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    sections.context.forEach { (key, value) ->
+                        if (value is JsonObject || value is JsonArray) {
+                            Text(key, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(value.toString(), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+                        } else {
+                            Text("$key: ${value.inlineText()}", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Breadcrumbs section
+        if (sections.breadcrumbs.isNotEmpty()) {
+            HorizontalDivider()
+            EventSectionCard(title = "Breadcrumbs") {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    sections.breadcrumbs.forEach { crumb ->
+                        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(crumb.timestamp, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(crumb.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(crumb.message, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Rest / Raw JSON section
+        if (sections.rest.isNotEmpty()) {
+            HorizontalDivider()
+            EventSectionCard(title = "Data") {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    sections.rest.forEach { (key, value) ->
+                        Text("$key: ${value.toString()}", style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+                    }
+                }
+            }
+        }
+
+        // Full raw JSON toggle
         if (event.data.isNotEmpty()) {
             HorizontalDivider()
-            Text("Data", style = MaterialTheme.typography.titleMedium)
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+            EventSectionCard(title = "Raw JSON") {
                 Text(
-                    text = prettyData(event.data),
+                    if (showRaw) "Hide" else "Show",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showRaw = !showRaw }
+                        .padding(vertical = 8.dp),
+                )
+                if (showRaw) {
+                    Text(
+                        text = prettyData(event.data),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EventSectionCard(title: String, content: @Composable () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+            shape = MaterialTheme.shapes.medium,
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
+private fun StackFrameRow(frame: StackFrame) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(if (frame.inApp) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(frame.function, style = MaterialTheme.typography.bodyMedium)
+            if (frame.file.isNotBlank()) {
+                Text(
+                    buildString {
+                        append(frame.file)
+                        frame.line?.let { append(":$it") }
+                    },
                     style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = FontFamily.Monospace,
-                    modifier = Modifier.padding(12.dp),
                 )
             }
+        }
+        if (frame.inApp) {
+            Text("in-app", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
         }
     }
 }
