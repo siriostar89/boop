@@ -2,8 +2,8 @@
 
 Client Android nativo (Kotlin + Jetpack Compose) per un server [Boop](../README.md) self-hosted.
 
-> Stato: **scaffold**. Il progetto Gradle compila una app minima (una schermata segnaposto).
-> Pairing, inbox e push FCM arrivano nelle fasi successive. Piano completo in
+> Stato: **in sviluppo**. Lo scaffold Gradle compila; il **pairing** (scan QR + inserimento
+> manuale) è implementato. Inbox e push FCM arrivano nelle fasi successive. Piano completo in
 > [`../QWEN.md`](../QWEN.md); lavorazioni in [`../DEVLOG.md`](../DEVLOG.md).
 
 ## Stack
@@ -54,18 +54,21 @@ android/
         ├── AndroidManifest.xml
         ├── res/values/             # strings, themes
         └── kotlin/dev/boop/android/
-            ├── BoopApp.kt          # Application
+            ├── BoopApp.kt          # Application + AppContainer
+            ├── AppContainer.kt     # DI manuale
             ├── MainActivity.kt
             ├── data/
             │   ├── model/          # Level, Device, Pairing, HealthStatus
-            │   └── remote/         # BoopApi (Retrofit), ApiFactory
+            │   ├── local/          # SessionStore (SharedPreferences)
+            │   ├── remote/         # BoopApi (Retrofit), ApiFactory
+            │   └── PairingRepository.kt
             └── ui/
-                ├── RootScreen.kt   # schermata segnaposto
+                ├── RootScreen.kt   # sceglie pairing / home
+                ├── pairing/        # PairingScreen + PairingViewModel (QR + manuale)
                 └── theme/          # Color, Theme
 ```
 
-Cartelle previste ma non ancora create: `domain/` (use case), `push/` (servizio FCM),
-`pairing/` (scanner QR).
+Cartelle previste ma non ancora create: `domain/` (use case), `push/` (servizio FCM).
 
 ## Identificatori
 

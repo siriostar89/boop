@@ -63,5 +63,8 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
 
+    // QR pairing scanner (pure, no Google Play Services).
+    implementation(libs.zxing.embedded)
+
     debugImplementation(libs.androidx.ui.tooling)
 }

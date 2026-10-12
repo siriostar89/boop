@@ -13,7 +13,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             BoopTheme {
-                RootScreen()
+                RootScreen((application as BoopApp).container)
             }
         }
     }

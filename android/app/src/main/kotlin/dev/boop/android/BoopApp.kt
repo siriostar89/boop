@@ -3,7 +3,15 @@ package dev.boop.android
 import android.app.Application
 
 /**
- * Application entry point. The paired-server session and push registration will
- * be wired here in later phases.
+ * Application entry point. Holds the manual dependency container; push
+ * registration will be wired here in a later phase.
  */
-class BoopApp : Application()
+class BoopApp : Application() {
+    lateinit var container: AppContainer
+        private set
+
+    override fun onCreate() {
+        super.onCreate()
+        container = AppContainer(this)
+    }
+}
