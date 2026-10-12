@@ -12,6 +12,10 @@ server/internal/web/dist/*
 *.db-shm
 .env
 secrets/
+# Local-only Firebase service-account keys (never commit).
+private.local/
+# Local Qwen Code environment settings (per-machine, not project config).
+.qwen/
 .DS_Store
 bin/
 Design System/

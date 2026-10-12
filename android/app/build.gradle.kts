@@ -5,6 +5,14 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+// The google-services plugin hard-fails when google-services.json is absent,
+// so apply it only when the file exists. Without it the project still builds
+// (anyone can compile with their own Firebase project); push stays disabled
+// at runtime because the Firebase SDK cannot fetch a token. See FIREBASE.md.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "dev.boop.android"
     compileSdk = 35
@@ -65,6 +73,13 @@ dependencies {
 
     // QR pairing scanner (pure, no Google Play Services).
     implementation(libs.zxing.embedded)
+
+    // Push notifications via Firebase Cloud Messaging. Works only with the
+    // developer's own google-services.json (see FIREBASE.md); without it the
+    // project still builds and the app runs, but PushRegistrar silently skips
+    // token registration and no pushes arrive.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
 
     testImplementation(libs.junit)
 

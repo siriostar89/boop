@@ -20,6 +20,11 @@ class SessionStore(context: Context) {
     val credential: String? get() = prefs.getString(KEY_CREDENTIAL, null)
     val deviceName: String? get() = prefs.getString(KEY_DEVICE_NAME, null)
 
+    /** Last FCM token sent to the server, to skip redundant registrations. */
+    var pushToken: String?
+        get() = prefs.getString(KEY_PUSH_TOKEN, null)
+        set(value) = prefs.edit { putString(KEY_PUSH_TOKEN, value) }
+
     val isPaired: Boolean
         get() = !serverUrl.isNullOrBlank() && !credential.isNullOrBlank()
 
@@ -48,5 +53,6 @@ class SessionStore(context: Context) {
         const val KEY_DEVICE_ID = "device_id"
         const val KEY_DEVICE_NAME = "device_name"
         const val KEY_GROUPED = "inbox_grouped"
+        const val KEY_PUSH_TOKEN = "push_token"
     }
 }

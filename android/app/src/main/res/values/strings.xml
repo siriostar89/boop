@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Boop</string>
+    <string name="notification_channel_name">Events</string>
 </resources>
